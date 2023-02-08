@@ -1,0 +1,1427 @@
+/////////////////////////////////////// 
+//  Develeper: Amirreza Moghaddam    //        
+//  Email: amirmoghadam716@yahoo.com //        
+///////////////////////////////////////   
+
+global float $buildHeigh = 300;
+global float $buildWidth = 2000;
+global float $buildDepth = 2000;
+float $buildHeighPivot = -1.5 * $buildHeigh;
+global float $windowWidith = 60;
+global float $windowHeigh = 80;
+global int $floorCount = 1;
+global int $bevelCheck;
+$bevelCheck = 0;
+
+
+//////////material 
+float $matCheck = 0;
+if (`objExists glass`){
+    $matCheck = 1;
+}
+if ($matCheck == 0){
+    shadingNode -asShader lambert -n glass;
+}
+
+//////////previsous Objects Delete 
+if (`objExists buildCube1`){
+    select -r buildCube1;
+    doDelete;
+}
+//////////////////////////////////////
+
+polyCube -ch on -o on -w $buildWidth -h $buildHeigh -d $buildDepth -cuv 4 -n "buildCube1";
+move -r 0 -150 0 buildCube1.scalePivot buildCube1.rotatePivot;
+select -r buildCube1.f[3] ;
+doDelete;
+
+
+///////////////////////////////////////// UI
+if (`window -exists buildGen`){
+    deleteUI buildGen;
+}
+window -t "Building Generator" -wh 400 400 buildGen;
+columnLayout ;
+attrFieldSliderGrp -min 100 -l "Width" -at "polyCube1.width";
+attrFieldSliderGrp -min 100 -l "Depth" -at "polyCube1.depth";
+separator -w 500 -h 20 -en false;
+text -l "Floors Count";
+intField -v 1 -min 1 -cc"fcValue_changed" fcValue;
+int $floorCount = `intField -q -v fcValue`;
+separator -w 500 -h 20 -en false;  
+
+
+frameLayout -l "Bevel" -cll on -cl on -w 400;
+gridLayout -nc 2 -cwh 200 50;
+button -l "Bevel" -c "bevel_command";
+floatField -v 0.1 -max 0.3 -cc"bvValue_changed" bvValue;
+
+
+frameLayout -l "Generate Windows" -cll on -cl off -w 400 -p "buildGen";
+button -l "Generate Windows" -c "window_gen" -bgc 1 0.365 0.365 ;
+text -label "Developed By \n  Amirreza Moghaddam"  -bgc 0.365 0.365 1 ;
+showWindow buildGen;
+
+global proc fcValue_changed(){
+    float $fc = `intField -q -v fcValue `;
+    setAttr "buildCube1.scaleY" $fc;
+}
+global proc bevel_command(){
+     global int $bevelCheck;
+     $bevelCheck = 1;
+     select -r buildCube1.e[4:5] buildCube1.e[8:9] ;
+     polyBevel3 -fraction 0.1 -offsetAsFraction 1 -autoFit 1 -depth 1 -mitering 0 -miterAlong 0 -chamfer 1 -segments 5 -worldSpace 1 -smoothingAngle 30 -subdivideNgons 1 -mergeVertices 1 -mergeVertexTolerance 0.0001 -miteringAngle 180 -angleTolerance 180 -ch 1 buildCube1.e[4:5] buildCube1.e[8:9];
+}
+global proc bvValue_changed(){
+    float $bv = `floatField -q -v bvValue `;
+    setAttr "polyBevel1.fraction" $bv;
+}
+
+////////////////////////////////////////// Window Generators
+global proc window_gen() {
+    global float $windowWidith;
+    global float $windowHeigh ;
+    global float $cubeWidth;
+    float $cubeWidth = `getAttr polyCube1.width`;
+    global float $cubeDepth;
+    float $cubeDepth = `getAttr polyCube1.depth`;
+    global float $windowFrontPo2;
+    float $windowFrontPo2 = `getAttr polyCube1.depth`;
+    global float $windowFrontPo;
+    float $windowSidePo2 = `getAttr polyCube1.width`;
+    global float $windowSidePo;
+    float $windowFrontPo = $windowFrontPo2 / 2;
+    float $windowSidePo = $windowSidePo2 / 2;
+    global float $buildW;
+    float $buildW = `polyCube -q -w polyCube1`;
+    global float $buildD;
+    float $buildD = `polyCube -q -d polyCube1`;
+
+
+/////////////////////////////////////////////////////////////////////////UI2
+   if (`window -exists buildGen`){
+   window -e -vis off buildGen;  } 
+   if (`window -exists windowgen`){
+    deleteUI windowgen;  } 
+    window -t "Building Generator" -wh 500 200 windowgen;
+    
+    gridLayout -nc 2 -cwh 250 30;
+    text -l "Front Window Width" ;
+    floatField -v 60 wwValue;
+    text -l "Front Window Height";
+    floatField -v 80 whValue;
+    text -l "Front Window Counts";
+    floatField -v 3 wcValue;
+    text -l "Front Corner Distance";
+    floatField -v 40 -min 10 codValue;
+    checkBox -v off -l "Other Side Windows" sideWindow;
+    string $windowButt = `button -l "Generate Windows"`;
+    button -edit -c("window_gen_button " + $windowButt) -bgc 0.95 0.365 0.365 $windowButt;
+    
+    separator -w 500 -h 5 -en false;  
+    separator -w 500 -h 5 -en false; 
+     
+    text -l "Side Window Width";
+    floatField -v 60 swwValue;
+    text -l "Side Window Height";
+    floatField -v 80 swhValue;
+    text -l "Side Window Counts";
+    floatField -v 3 swcValue;
+    text -l "Side Corner Distance";
+    floatField -v 40 -min 10 scodValue;
+    
+    separator -w 500 -h 20 -en false;  
+    separator -w 500 -h 20 -en false;  
+    
+    checkBox -v off -l "Front Windows Curve" frontWindowCurve;
+    checkBox -v off -l "Side Windows Curve" sideWindowCurve;
+     
+    separator -w 500 -h 20 -en false;  
+    separator -w 500 -h 20 -en false;
+    
+    checkBox -v off -l "Front Windows Straight Desgins" frontWindowStraight;
+    checkBox -v off -l "Side Windows Straight Desgins"  sideWindowStraight;
+     
+    separator -w 500 -h 20 -en false;  
+    separator -w 500 -h 20 -en false;
+    
+    
+    checkBox -v off -l "Composite Panels" compositePanels;
+    text -visible false;
+    text -l "Panels Height Multiple";
+    floatField -v 0.7 -min 0.1  compPanelScale;
+     
+   
+    separator -w 500 -h 20 -en false;  
+    separator -w 500 -h 20 -en false;
+      
+      
+    checkBox -v off -l "Front Window Vertical Rods Count" wvrCheckValue;
+    intField -v 3 -min 1 wvrValue;
+    checkBox -v off -l "Front Window Horizontal Rods Count" whrCheckValue;
+    intField -v 2 -min 1 whrValue;
+    
+    separator -w 500 -h 20 -en false;  
+    separator -w 500 -h 20 -en false;
+      
+    checkBox -v off -l "Side Window Vertical Rods Count" swvrCheckValue;
+    intField -v 3 -min 1 swvrValue;
+    checkBox -v off -l "Side Window Horizontal Rods Count" swhrCheckValue;
+    intField -v 2 -min 1 swhrValue;
+    
+    separator -w 500 -h 20 -en false;  
+    separator -w 500 -h 20 -en false;
+    
+    button -l "Finish up" -c "finish_up" -bgc 0.3 0.8 0.365 ;
+    text -label "Developed By \n  Amirreza Moghaddam"  -bgc 0.365 0.365 1 ;
+    
+    showWindow windowgen;
+
+}
+///////////////////////////////////////finish up button
+global proc finish_up(){
+    group -em -n "Buidling_constructed";
+    rename "windows_gp" "Buidling Structure";
+    rename "windows1" "Windows Part";
+    if (`objExists compPanels `){ 
+    rename "compPanels" "Panels";
+    parent Panels Buidling_constructed ;}
+    parent Windows_Part Buidling_constructed ;
+    parent Buidling_Structure Buidling_constructed;
+    searchReplaceNames "compositeCube" "panelCube" "all"; 
+    select -r Buidling_constructed; 
+    PrefixHierarchyNames;
+     if (`window -exists windowgen`){
+    deleteUI windowgen;  }    
+}
+////////////////////////////////////Window Generator PROC
+
+global proc window_gen_button(string $whichButton) {
+    global float $windowWidith;
+    global float $windowHeigh ;
+    global float $cubeWidth;
+    global float $cubeDepth;
+
+    global float $windowFrontPo2;
+    global float $windowFrontPo;
+    global float $windowSidePo2;
+    global float $windowSidePo;
+  
+    
+    float $ww = `floatField -q -v wwValue`;
+    float $wh = `floatField -q -v whValue`;
+    float $wc = `floatField -q -v wcValue`;
+    float $codis = `floatField -q -v codValue`;
+    float $wc2 = $wc -1 ;
+    
+    float $sww = `floatField -q -v swwValue`;
+    float $swh = `floatField -q -v swhValue`;
+    float $swc = `floatField -q -v swcValue`;
+    float $scodis = `floatField -q -v scodValue`;
+    float $swc2 = $swc -1 ;
+    
+    global float $buildW;
+    global float $buildD;
+    global int $floorCount ;
+    $floorCount = `intField -q -v fcValue`;
+    int $floorCount2 = $floorCount - 2;
+    
+    global float $bvVal;
+    $bvVal = `floatField -q -v bvValue`;
+    
+    
+    string $labelA;
+    string $labelB;
+    string $currentlabel;
+    
+    global int $bevelCheck;
+    
+    
+    ////////////////////////////////////delete old Cube //// make it again
+    
+    
+    $currentlabel = `button -q -l $whichButton`;
+    $labelA = "Refresh Windows";
+    $labelB = "Refresh Window";
+    if ($currentlabel != $labelA) { 
+       button -edit -label $labelA $whichButton;
+       if (`objExists windowCube1`){
+           select -r windowCube1;
+           doDelete;
+       }
+       if (`objExists windows_gp`){
+           select -r windows_gp;
+           doDelete;
+       }
+       if (`objExists windows_gp1`){
+           select -r windows_gp1;
+           doDelete;
+       }
+       if (`objExists windows_gp2`){
+           select -r windows_gp2;
+           doDelete;
+       }
+       if (`objExists windows_gp3`){
+           select -r windows_gp3;
+           doDelete;
+       }
+       if (`objExists windows1`){
+           select -r windows1;
+           doDelete;
+       }
+      if (`objExists windowInserts1`){
+           select -r windowInserts1;
+           doDelete;
+       }
+       if (`objExists windowInserts2`){
+           select -r windowInserts2;
+           doDelete;
+       }
+       if (`objExists windowInserts3`){
+           select -r windowInserts3;
+           doDelete;
+       }
+       if (`objExists windowInserts4`){
+           select -r windowInserts4;
+           doDelete;
+       }
+       
+       if (`objExists compPanels`){
+                        select -r compPanels;
+                        doDelete;  }
+                        
+        if (`objExists buildCube1`){
+           select -r buildCube1;
+           doDelete;
+       }
+       ////////////////////////////////////old Cube
+       polyCube -ch on -o on -w $cubeWidth -h 300 -d $cubeDepth -cuv 4 -n "buildCube1";
+       move -r 0 -150 0 buildCube1.scalePivot buildCube1.rotatePivot;
+       float $floorCountHigh =  $floorCount + 0.23;
+       setAttr "buildCube1.scaleY" $floorCountHigh;
+       select -r buildCube1.f[3] ;
+       doDelete;
+       select -r buildCube1.f[1] ;
+       polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 2850 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 20 -thickness 0 -smoothingAngle 30 buildCube1.f[1];
+       polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 2850 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -60 -smoothingAngle 30 buildCube1.f[1];
+          if ($bevelCheck == 1) {
+           select -add buildCube1.e[4:5] buildCube1.e[8:9] buildCube1.e[12:13] buildCube1.e[15] buildCube1.e[17] buildCube1.e[20:21] buildCube1.e[23] buildCube1.e[25] ;
+           polyBevel3 -fraction $bvVal -offsetAsFraction 1 -autoFit 1 -depth 1 -mitering 0 -miterAlong 0 -chamfer 1 -segments 5 -worldSpace 1 -smoothingAngle 30 -subdivideNgons 1 -mergeVertices 1 -mergeVertexTolerance 0.0001 -miteringAngle 180 -angleTolerance 180 -ch 1 buildCube1.e[4:5] buildCube1.e[8:9] buildCube1.e[12:13] buildCube1.e[15] buildCube1.e[17] buildCube1.e[20:21] buildCube1.e[23] buildCube1.e[25];
+        }
+       select -cl;
+       ////////////////////////old Cube
+       polyCube -ch on -o on -w $ww -h $wh -d 200 -cuv 4 -n "windowCube1";
+       move -r -z $windowFrontPo;
+       float $cornerDist = $codis;
+       float $windowSpace1 = $buildW - (2 * $cornerDist);
+       float $windowDist1 = $windowSpace1 - ($wc * $ww);
+       float $windowDist2 = $windowDist1 / ($wc - 1);
+       float $windowMove = $ww + $windowDist2;
+       group -em -n "windows_gp";
+       parent windowCube1 windows_gp;
+       duplicate -rr -renameChildren;
+       move -r $windowMove 0 0;
+       for ($i=1; $i<$wc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r windows_gp ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp windows_gp;
+       DeleteHistory;
+       move -a -rpr -x 0;
+         if ($floorCount > 1 ){
+            move -a -rpr -y 300; 
+       }
+
+///////////////////////////////////////////////////////side Window
+string $sideWin = `checkBox -q -v sideWindow`;
+
+float $windowBackPo = -$windowFrontPo;
+float $windowSidePo2 = -$windowSidePo;
+if ($sideWin == on){
+    select -r windows_gp1;
+    duplicate -rr;
+    move -a -rpr -z $windowBackPo;
+    polyCube -ch on -o on -w $sww -h $swh -d 200 -cuv 4 -n "windowCube1";
+    setAttr "windowCube1.rotateY" -90;
+    move -r -x $windowSidePo;
+       float $scornerDist = $scodis;
+       float $windowSpace1 = $buildD - (2 * $scornerDist);
+       float $windowDist1 = $windowSpace1 - ($swc * $sww);
+       float $windowDist2 = $windowDist1 / ($swc - 1);
+       float $windowMove = $sww + $windowDist2;
+       group -em -n "windows_gp";
+       parent windowCube1 windows_gp;
+       duplicate -rr -renameChildren;
+       move -r 0 0 $windowMove;
+       for ($i=1; $i<$swc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r windows_gp ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp3 windows_gp;
+       DeleteHistory;
+       move -a -rpr -z 0;
+         if ($floorCount > 1 ){
+            move -a -rpr -y 300; 
+       } 
+       select -r windows_gp3;
+       duplicate -rr;
+       move -a -rpr -x $windowSidePo2;
+}
+/////////////////////////////////////////////vertical Windows
+  if ($floorCount > 2){
+               group -em -n "windows_Vertical";
+               parent windows_gp1 windows_Vertical;
+               if ($sideWin == on){
+               parent windows_gp2 windows_Vertical;
+               parent windows_gp3 windows_Vertical;
+               parent windows_gp4 windows_Vertical;
+               group -em -n "windows_Vertical2";
+               parent windows_Vertical windows_Vertical2; }
+               duplicate -rr -renameChildren;
+               move -r 0 300 0;
+               for ($i=1; $i<$floorCount2; ++$i) duplicate -rr -renameChildren -st; 
+       }
+  if ($floorCount < 2){
+             
+               if ($sideWin == on){
+               group -em -n "windows_Vertical";
+               parent windows_gp1 windows_Vertical;
+               parent windows_gp2 windows_Vertical;
+               parent windows_gp3 windows_Vertical;
+               parent windows_gp4 windows_Vertical;}
+   
+       }      
+         if (`objExists windows_Vertical2`){
+             select -r windows_Vertical2;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp1 windows_Vertical2;
+             DeleteHistory;
+         }
+        if (`objExists windows_Vertical`){
+             select -r windows_Vertical;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp1 windows_Vertical;
+             DeleteHistory;
+         } 
+/////////////////////////////////////////////////// final touch: Boolean
+
+select -r buildCube1 ;
+select -tgl windows_gp1 ;
+polyCBoolOp -op 2 -ch 1 -preserveColor 0 -classification 2 -name windows_gp buildCube1 windows_gp1;
+DeleteHistory;
+polyTriangulate -ch 1 windows_gp;
+performPolyAutoProj 0;
+//select -cl  ;
+select -r windows_gp;
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 600 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -20 -smoothingAngle 30 windows_gp;
+hilite;
+doDelete;
+polyNormal -normalMode 0 -userNormalMode 0 -ch 1 windows_gp;
+select -r windows_gp;
+select -cl;
+       
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////windowssssssss
+string $frontWinCurve = `checkBox -q -v frontWindowCurve`;
+string $sideWinCurve = `checkBox -q -v sideWindowCurve`;
+
+string $frontWinStraight = `checkBox -q -v frontWindowStraight`;
+string $sideWinStraight = `checkBox -q -v sideWindowStraight`;
+
+    string $wvrCheck = `checkBox -q -v wvrCheckValue`;
+    int $wvr = `intField -q -v wvrValue`;
+    string $whrCheck = `checkBox -q -v whrCheckValue`;
+    int $whr = `intField -q -v whrValue`;
+   
+    string $swvrCheck = `checkBox -q -v swvrCheckValue`;
+    int $swvr = `intField -q -v swvrValue`;
+    string $swhrCheck = `checkBox -q -v swhrCheckValue`;
+    int $swhr = `intField -q -v swhrValue`;
+
+polyCube -ch on -o on -w $ww -h $wh -d 30 -cuv 4 -n "windowInsert1";
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 0 -pvz 240 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowInsert1.f[0] windowInsert1.f[2];
+hilite;
+doDelete;
+select -cl; select -r windowInsert1;
+polyBridgeEdge -ch 1 -divisions 0 -twist 0 -taper 1 -curveType 0 -smoothingAngle 30 -direction 0 -sourceDirection 0 -targetDirection 0;
+select -r windowInsert1;
+float $gw = $ww - 2;
+float $gh = $wh - 2;
+float $sgw = $sww - 2;
+float $sgh = $swh - 2;
+polyCube -ch on -o on -w $gw -h $gh -d 5 -cuv 4 -n "windowInsert2";
+select -r windowInsert2;
+sets -e -forceElement glassSG;
+//createAndAssignShader lambert "";
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts1 windowInsert1 windowInsert2;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+DeleteHistory;
+////////////Curve Parts
+       if ($frontWinCurve == on){
+           float $cyw = $ww /2 ;
+           polyCylinder -ch on -o on -sa 26 -ax 0 0 1 -r $cyw -h 30 -sc 1 -cuv 3 -n "curvedWindow1";
+           float $cywh = $wh /2 ;
+           move -r -y $cywh;
+           select -r curvedWindow1.f[26:77] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 curvedWindow1.f[26:77];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 curvedWindow1.f[26:77];
+           select -r curvedWindow1.f[12:24] curvedWindow1.f[26:51] curvedWindow1.f[64:76] curvedWindow1.f[78:103] curvedWindow1.f[116:128] curvedWindow1.f[130:155] curvedWindow1.f[168:180] ;
+           doDelete;
+           select -r curvedWindow1.f[13:25] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowCurved curvedWindow1 windowInserts1;
+           DeleteHistory;
+           rename "windowCurved" "windowInserts1";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory; 
+
+////////////Straight Parts
+       if ($frontWinStraight == on){
+           float $sqSide = $ww / 1.414213562373095;
+           float $cywh = $wh /2 ;
+           polyCube -ch on -o on -w $sqSide -h $sqSide -d 30 -cuv 4 -n "windowStraight";
+           setAttr "windowStraight.rotateZ" 45;
+           move -r -y $cywh;
+           select -r windowStraight.f[0] windowStraight.f[2] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowStraight.f[0];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 windowStraight.f[0];
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 22 1 -ep 26 0 |windowStraight;  select -cl;
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 9 1 -ep 2 0 |windowStraight;  select -cl;
+           select -r windowStraight.f[0] windowStraight.f[3] windowStraight.f[5:6] windowStraight.f[9:10] windowStraight.f[13] windowStraight.f[15] ;
+           doDelete;
+           select -r windowStraight.f[7] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowStraight1 windowStraight windowInserts1;
+           DeleteHistory;
+           rename "windowStraight1" "windowInserts1";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory;                 
+
+////////////Middle Vertical Rods
+        if ($wvrCheck == on){
+           if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w $gw -h 2.5 -d 3 -cuv 4 -n "windowRods";
+           select -r windowRods.f[3:5] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           //polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+           float $IwindowRodCount = $wvr;
+           float $windowRodCount = $IwindowRodCount - 1;
+           float $windowRodMove = ($gh - 5) / ($windowRodCount + 1);
+                      if ($IwindowRodCount > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r 0 $windowRodMove 0;
+                            for ($i=1; $i<$windowRodCount; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -y 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.5;
+select -r windowRods windowInserts1 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts1;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts1";
+                     }   
+////////////Middle Horizontal Rods
+        if ($whrCheck == on){
+              if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w 3 -h 2.5 -d $gh -cuv 4 -n "windowRods";
+           select -r windowRods.f[0] windowRods.f[2:3] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           //polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+           float $IwindowRodCount2 = $whr;
+           float $windowRodCount2 = $IwindowRodCount2 - 1;
+           float $windowRodMove2 = ($gw - 5) / ($windowRodCount2 + 1);
+                      if ($IwindowRodCount2 > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r $windowRodMove2 0 0;
+                            for ($i=1; $i<$windowRodCount2; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -x 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.75;
+select -r windowRods windowInserts1 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts1;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts1";    
+}
+////////////////////////////// Row Windows Gen
+select -r windowInserts1;
+       float $GlassWindowsFrontPo = $windowFrontPo - 10;
+       move -r -z $GlassWindowsFrontPo;
+       float $cornerDist = $codis;
+       float $windowSpace1 = $buildW - (2 * $cornerDist);
+       float $windowDist1 = $windowSpace1 - ($wc * $ww);
+       float $windowDist2 = $windowDist1 / ($wc - 1);
+       float $windowMove = $ww + $windowDist2;
+       group -em -n "windows_inserts";
+       parent windowInserts1 windows_inserts;
+       duplicate -rr -renameChildren;
+       move -r $windowMove 0 0;
+       for ($i=1; $i<$wc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r windows_inserts ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts1 windows_inserts;
+       DeleteHistory;
+       move -a -rpr -x 0;
+      // move -a -y 0 windowInserts1.scalePivot windowInserts1.rotatePivot;
+         if ($floorCount > 1 ){
+            move -r -rpr -y 300; 
+       }
+        if (`objExists windows_inserts`){
+            select -r windows_inserts;
+            doDelete;
+        }
+///////////////////////////////////////////////////////side Window
+string $sideWin = `checkBox -q -v sideWindow`;
+float $windowBackPo = -$windowFrontPo;
+float $windowSidePo2 = -$windowSidePo;
+if ($sideWin == on){
+    select -r windowInserts1;
+    duplicate -rr;
+    float $GlassWindowBackPo = $windowBackPo + 10;
+    move -a -rpr -z $GlassWindowBackPo;
+    setAttr "windowInserts2.scaleZ" -1;
+   polyCube -ch on -o on -w $sww -h $swh -d 30 -cuv 4 -n "windowInsert3";
+//move -a -rpr -z 240;
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 0 -pvz 240 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowInsert3.f[0] windowInsert3.f[2];
+hilite;
+doDelete;
+select -cl; select -r windowInsert3;
+polyBridgeEdge -ch 1 -divisions 0 -twist 0 -taper 1 -curveType 0 -smoothingAngle 30 -direction 0 -sourceDirection 0 -targetDirection 0;
+select -r windowInsert3;
+float $sgw = $sww - 2;
+float $sgh = $swh - 2;
+polyCube -ch on -o on -w $sgw -h $sgh -d 5 -cuv 4 -n "windowInsert4";
+select -r windowInsert4;
+sets -e -forceElement glassSG;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts3 windowInsert3 windowInsert4;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+DeleteHistory;
+////////////Curve Parts
+        if ($sideWinCurve == on){
+           float $cysw = $sww /2 ;
+           polyCylinder -ch on -o on -sa 26 -ax 0 0 1 -r $cysw -h 30 -sc 1 -cuv 3 -n "curvedWindow1";
+           float $cyswh = $swh /2 ;
+           move -r -y $cyswh;
+           select -r curvedWindow1.f[26:77] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 curvedWindow1.f[26:77];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 curvedWindow1.f[26:77];
+           select -r curvedWindow1.f[12:24] curvedWindow1.f[26:51] curvedWindow1.f[64:76] curvedWindow1.f[78:103] curvedWindow1.f[116:128] curvedWindow1.f[130:155] curvedWindow1.f[168:180] ;
+           doDelete;
+           select -r curvedWindow1.f[13:25] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowCurved curvedWindow1 windowInserts3;
+           DeleteHistory;
+           rename "windowCurved" "windowInserts3";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory; 
+////////////Straight Parts
+       if ($sideWinStraight == on){
+           float $SsqSide = $sww / 1.414213562373095;
+           float $cyswh = $swh /2 ;
+           polyCube -ch on -o on -w $SsqSide -h $SsqSide -d 30 -cuv 4 -n "windowStraight";
+           setAttr "windowStraight.rotateZ" 45;
+           move -r -y $cyswh;
+           select -r windowStraight.f[0] windowStraight.f[2] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowStraight.f[0];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 windowStraight.f[0];
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 22 1 -ep 26 0 |windowStraight;  select -cl;
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 9 1 -ep 2 0 |windowStraight;  select -cl;
+           select -r windowStraight.f[0] windowStraight.f[3] windowStraight.f[5:6] windowStraight.f[9:10] windowStraight.f[13] windowStraight.f[15] ;
+           doDelete;
+           select -r windowStraight.f[7] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowStraight1 windowStraight windowInserts3;
+           DeleteHistory;
+           rename "windowStraight1" "windowInserts3";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory;                 
+
+////////////Middle Vertical Rods
+        if ($swvrCheck == on){
+           if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w $sgw -h 2.5 -d 3 -cuv 4 -n "windowRods";
+           select -r windowRods.f[3:5] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           //polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+           float $IwindowRodCount = $swvr;
+           float $windowRodCount = $IwindowRodCount - 1;
+           float $windowRodMove = ($sgh - 5) / ($windowRodCount + 1);
+                      if ($IwindowRodCount > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r 0 $windowRodMove 0;
+                            for ($i=1; $i<$windowRodCount; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -y 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.5;
+select -r windowRods windowInserts3 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts3;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts3";
+                     }   
+////////////Middle Horizontal Rods
+        if ($swhrCheck == on){
+              if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w 3 -h 2.5 -d $sgh -cuv 4 -n "windowRods";
+           select -r windowRods.f[0] windowRods.f[2:3] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           float $IwindowRodCount2 = $swhr;
+           float $windowRodCount2 = $IwindowRodCount2 - 1;
+           float $windowRodMove2 = ($sgw - 5) / ($windowRodCount2 + 1);
+                      if ($IwindowRodCount2 > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r $windowRodMove2 0 0;
+                            for ($i=1; $i<$windowRodCount2; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -x 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.75;
+select -r windowRods windowInserts3 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts3;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts3";    
+}
+////////////////////////
+    setAttr "windowInserts3.rotateY" 90;
+    select -r windowInserts3;
+    float $GlassWindowSidePo = $windowSidePo - 10;
+    move -a -rpr -x $GlassWindowSidePo;
+       float $scornerDist = $scodis;
+       float $windowSpace1 = $buildD - (2 * $scornerDist);
+       float $windowDist1 = $windowSpace1 - ($swc * $sww);
+       float $windowDist2 = $windowDist1 / ($swc - 1);
+       float $windowMove = $sww + $windowDist2;
+       group -em -n "window_inserts";
+       parent windowInserts3 window_inserts;
+       duplicate -rr -renameChildren;
+       move -r 0 0 $windowMove;
+       for ($i=1; $i<$swc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r window_inserts ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts3 window_inserts;
+       DeleteHistory;
+       move -a -rpr -z 0;
+         if ($floorCount > 1 ){
+            move -r -rpr -y 300; 
+       } 
+         if (`objExists window_inserts`){
+            select -r window_inserts;
+            doDelete;
+        }
+       select -r windowInserts3;
+       duplicate -rr;
+       float $GlassWindowSidePo2 = $windowSidePo2 + 10;
+       move -a -rpr -x $GlassWindowSidePo2;
+       setAttr "windowInserts4.scaleX" -1;
+}
+/////////////////////////////////////////////vertical Windows
+     if ($floorCount > 2){
+               group -em -n "windows_Vertical";
+               parent windowInserts1 windows_Vertical;
+               if ($sideWin == on){
+               parent windowInserts2 windows_Vertical;
+               parent windowInserts3 windows_Vertical;
+               parent windowInserts4 windows_Vertical;
+               group -em -n "windows_Vertical2";
+               parent windows_Vertical windows_Vertical2; }
+               duplicate -rr -renameChildren;
+               move -r 0 300 0;
+               for ($i=1; $i<$floorCount2; ++$i) duplicate -rr -renameChildren -st; 
+       }
+         if (`objExists windows_Vertical2`){
+             select -r windows_Vertical2;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows1 windows_Vertical2;
+             DeleteHistory;
+         }
+        if (`objExists windows_Vertical`){
+             select -r windows_Vertical;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows1 windows_Vertical;
+             DeleteHistory;
+         }  
+          if (`objExists windows_Vertical2`){
+             select -r windows_Vertical2;
+             doDelete;
+         }
+      ///////////////////////////////////////////////// Composite Parts
+    string $coPanelCheck = `checkBox -q -v compositePanels`;
+    float $cohs = `floatField -q -v compPanelScale`;
+    if ($floorCount > 1){
+           if ($coPanelCheck == on){
+     
+                  if (`objExists compPanels`){
+                        select -r compPanels;
+                        doDelete;  }
+        float $coh = 300 - $ww;
+        float $cow = $cubeWidth + 70;
+        float $codepth = $cubeDepth +70;
+        float $compoYscale = $cohs;
+        polyCube -ch on -o on -w $cow -h $coh -d $codepth -cuv 4 -n "compositeCube";
+        polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 450 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 40 -thickness 0 -smoothingAngle 30 compositeCube.f[1] compositeCube.f[3];
+        hilite;
+        doDelete;
+        if ($bevelCheck == 1) {
+           select -add compositeCube.e[4:5] compositeCube.e[8:9] compositeCube.e[12:13] compositeCube.e[15] compositeCube.e[17] compositeCube.e[20:21] compositeCube.e[23] compositeCube.e[25] ;
+           polyBevel3 -fraction $bvVal -offsetAsFraction 1 -autoFit 1 -depth 1 -mitering 0 -miterAlong 0 -chamfer 1 -segments 5 -worldSpace 1 -smoothingAngle 30 -subdivideNgons 1 -mergeVertices 1 -mergeVertexTolerance 0.0001 -miteringAngle 180 -angleTolerance 180 -ch 1 compositeCube.e[4:5] compositeCube.e[8:9] compositeCube.e[12:13] compositeCube.e[15] compositeCube.e[17] compositeCube.e[20:21] compositeCube.e[23] compositeCube.e[25];
+        }
+        select -r compositeCube;
+        group -em -n "compPanels";
+        parent compositeCube compPanels;
+        setAttr "compositeCube.scaleY" $compoYscale; 
+        makeIdentity -apply true -t 0 -r 0 -s 1 -n 0 -pn 1;
+        polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+        select -r compositeCube;
+        DeleteHistory;
+        float $floorCount3 = $floorCount2 - 1;       
+  
+                 if ($floorCount > 2){
+                 move -r -y 450;
+                 }
+                 if ($floorCount > 3){
+                 duplicate -rr -renameChildren; 
+                 move -r 0 300 0;
+                 for ($i=1; $i< $floorCount3; ++$i) duplicate -rr -renameChildren -st;
+                 }
+}}
+      ///////////////////////////////////////////////////////
+      
+      
+} else {
+       button -edit -label $labelB $whichButton;
+             if (`objExists windowCube1`){
+           select -r windowCube1;
+           doDelete;
+       }
+       if (`objExists windows_gp`){
+           select -r windows_gp;
+           doDelete;
+       }
+       if (`objExists windows_gp1`){
+           select -r windows_gp1;
+           doDelete;
+       }
+       if (`objExists windows_gp2`){
+           select -r windows_gp2;
+           doDelete;
+       }
+       if (`objExists windows_gp3`){
+           select -r windows_gp3;
+           doDelete;
+       }
+       if (`objExists windows1`){
+           select -r windows1;
+           doDelete;
+       }
+      if (`objExists windowInserts1`){
+           select -r windowInserts1;
+           doDelete;
+       }
+       if (`objExists windowInserts2`){
+           select -r windowInserts2;
+           doDelete;
+       }
+       if (`objExists windowInserts3`){
+           select -r windowInserts3;
+           doDelete;
+       }
+       if (`objExists windowInserts4`){
+           select -r windowInserts4;
+           doDelete;
+       }
+       
+       if (`objExists compPanels`){
+                        select -r compPanels;
+                        doDelete;  }
+                        
+        if (`objExists buildCube1`){
+           select -r buildCube1;
+           doDelete;
+       }
+       ////////////////////////////////////old Cube
+       polyCube -ch on -o on -w $cubeWidth -h 300 -d $cubeDepth -cuv 4 -n "buildCube1";
+       move -r 0 -150 0 buildCube1.scalePivot buildCube1.rotatePivot;
+       float $floorCountHigh =  $floorCount + 0.23;
+       setAttr "buildCube1.scaleY" $floorCountHigh;
+       select -r buildCube1.f[3] ;
+       doDelete;
+       select -r buildCube1.f[1] ;
+       polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 2850 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 20 -thickness 0 -smoothingAngle 30 buildCube1.f[1];
+       polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 2850 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -60 -smoothingAngle 30 buildCube1.f[1];
+          if ($bevelCheck == 1) {
+           select -add buildCube1.e[4:5] buildCube1.e[8:9] buildCube1.e[12:13] buildCube1.e[15] buildCube1.e[17] buildCube1.e[20:21] buildCube1.e[23] buildCube1.e[25] ;
+           polyBevel3 -fraction $bvVal -offsetAsFraction 1 -autoFit 1 -depth 1 -mitering 0 -miterAlong 0 -chamfer 1 -segments 5 -worldSpace 1 -smoothingAngle 30 -subdivideNgons 1 -mergeVertices 1 -mergeVertexTolerance 0.0001 -miteringAngle 180 -angleTolerance 180 -ch 1 buildCube1.e[4:5] buildCube1.e[8:9] buildCube1.e[12:13] buildCube1.e[15] buildCube1.e[17] buildCube1.e[20:21] buildCube1.e[23] buildCube1.e[25];
+        }
+       select -cl;
+       ////////////////////////old Cube
+       polyCube -ch on -o on -w $ww -h $wh -d 200 -cuv 4 -n "windowCube1";
+       move -r -z $windowFrontPo;
+       float $cornerDist = $codis;
+       float $windowSpace1 = $buildW - (2 * $cornerDist);
+       float $windowDist1 = $windowSpace1 - ($wc * $ww);
+       float $windowDist2 = $windowDist1 / ($wc - 1);
+       float $windowMove = $ww + $windowDist2;
+       group -em -n "windows_gp";
+       parent windowCube1 windows_gp;
+       duplicate -rr -renameChildren;
+       move -r $windowMove 0 0;
+       for ($i=1; $i<$wc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r windows_gp ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp windows_gp;
+       DeleteHistory;
+       move -a -rpr -x 0;
+         if ($floorCount > 1 ){
+            move -a -rpr -y 300; 
+       }
+
+///////////////////////////////////////////////////////side Window
+string $sideWin = `checkBox -q -v sideWindow`;
+
+float $windowBackPo = -$windowFrontPo;
+float $windowSidePo2 = -$windowSidePo;
+if ($sideWin == on){
+    select -r windows_gp1;
+    duplicate -rr;
+    move -a -rpr -z $windowBackPo;
+    polyCube -ch on -o on -w $sww -h $swh -d 200 -cuv 4 -n "windowCube1";
+    setAttr "windowCube1.rotateY" -90;
+    move -r -x $windowSidePo;
+       float $scornerDist = $scodis;
+       float $windowSpace1 = $buildD - (2 * $scornerDist);
+       float $windowDist1 = $windowSpace1 - ($swc * $sww);
+       float $windowDist2 = $windowDist1 / ($swc - 1);
+       float $windowMove = $sww + $windowDist2;
+       group -em -n "windows_gp";
+       parent windowCube1 windows_gp;
+       duplicate -rr -renameChildren;
+       move -r 0 0 $windowMove;
+       for ($i=1; $i<$swc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r windows_gp ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp3 windows_gp;
+       DeleteHistory;
+       move -a -rpr -z 0;
+         if ($floorCount > 1 ){
+            move -a -rpr -y 300; 
+       } 
+       select -r windows_gp3;
+       duplicate -rr;
+       move -a -rpr -x $windowSidePo2;
+}
+/////////////////////////////////////////////vertical Windows
+  if ($floorCount > 2){
+               group -em -n "windows_Vertical";
+               parent windows_gp1 windows_Vertical;
+               if ($sideWin == on){
+               parent windows_gp2 windows_Vertical;
+               parent windows_gp3 windows_Vertical;
+               parent windows_gp4 windows_Vertical;
+               group -em -n "windows_Vertical2";
+               parent windows_Vertical windows_Vertical2; }
+               duplicate -rr -renameChildren;
+               move -r 0 300 0;
+               for ($i=1; $i<$floorCount2; ++$i) duplicate -rr -renameChildren -st; 
+       }
+  if ($floorCount < 2){
+             
+               if ($sideWin == on){
+               group -em -n "windows_Vertical";
+               parent windows_gp1 windows_Vertical;
+               parent windows_gp2 windows_Vertical;
+               parent windows_gp3 windows_Vertical;
+               parent windows_gp4 windows_Vertical;}
+   
+       }      
+         if (`objExists windows_Vertical2`){
+             select -r windows_Vertical2;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp1 windows_Vertical2;
+             DeleteHistory;
+         }
+        if (`objExists windows_Vertical`){
+             select -r windows_Vertical;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows_gp1 windows_Vertical;
+             DeleteHistory;
+         } 
+/////////////////////////////////////////////////// final touch: Boolean
+
+select -r buildCube1 ;
+select -tgl windows_gp1 ;
+polyCBoolOp -op 2 -ch 1 -preserveColor 0 -classification 2 -name windows_gp buildCube1 windows_gp1;
+DeleteHistory;
+polyTriangulate -ch 1 windows_gp;
+performPolyAutoProj 0;
+//select -cl  ;
+select -r windows_gp;
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 600 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -20 -smoothingAngle 30 windows_gp;
+hilite;
+doDelete;
+polyNormal -normalMode 0 -userNormalMode 0 -ch 1 windows_gp;
+select -r windows_gp;
+select -cl;
+       
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////windowssssssss
+string $frontWinCurve = `checkBox -q -v frontWindowCurve`;
+string $sideWinCurve = `checkBox -q -v sideWindowCurve`;
+
+string $frontWinStraight = `checkBox -q -v frontWindowStraight`;
+string $sideWinStraight = `checkBox -q -v sideWindowStraight`;
+
+    string $wvrCheck = `checkBox -q -v wvrCheckValue`;
+    int $wvr = `intField -q -v wvrValue`;
+    string $whrCheck = `checkBox -q -v whrCheckValue`;
+    int $whr = `intField -q -v whrValue`;
+   
+    string $swvrCheck = `checkBox -q -v swvrCheckValue`;
+    int $swvr = `intField -q -v swvrValue`;
+    string $swhrCheck = `checkBox -q -v swhrCheckValue`;
+    int $swhr = `intField -q -v swhrValue`;
+
+polyCube -ch on -o on -w $ww -h $wh -d 30 -cuv 4 -n "windowInsert1";
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 0 -pvz 240 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowInsert1.f[0] windowInsert1.f[2];
+hilite;
+doDelete;
+select -cl; select -r windowInsert1;
+polyBridgeEdge -ch 1 -divisions 0 -twist 0 -taper 1 -curveType 0 -smoothingAngle 30 -direction 0 -sourceDirection 0 -targetDirection 0;
+select -r windowInsert1;
+float $gw = $ww - 2;
+float $gh = $wh - 2;
+float $sgw = $sww - 2;
+float $sgh = $swh - 2;
+polyCube -ch on -o on -w $gw -h $gh -d 5 -cuv 4 -n "windowInsert2";
+select -r windowInsert2;
+sets -e -forceElement glassSG;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts1 windowInsert1 windowInsert2;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+DeleteHistory;
+////////////Curve Parts
+       if ($frontWinCurve == on){
+           float $cyw = $ww /2 ;
+           polyCylinder -ch on -o on -sa 26 -ax 0 0 1 -r $cyw -h 30 -sc 1 -cuv 3 -n "curvedWindow1";
+           float $cywh = $wh /2 ;
+           move -r -y $cywh;
+           select -r curvedWindow1.f[26:77] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 curvedWindow1.f[26:77];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 curvedWindow1.f[26:77];
+           select -r curvedWindow1.f[12:24] curvedWindow1.f[26:51] curvedWindow1.f[64:76] curvedWindow1.f[78:103] curvedWindow1.f[116:128] curvedWindow1.f[130:155] curvedWindow1.f[168:180] ;
+           doDelete;
+           select -r curvedWindow1.f[13:25] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowCurved curvedWindow1 windowInserts1;
+           DeleteHistory;
+           rename "windowCurved" "windowInserts1";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory; 
+
+////////////Straight Parts
+       if ($frontWinStraight == on){
+           float $sqSide = $ww / 1.414213562373095;
+           float $cywh = $wh /2 ;
+           polyCube -ch on -o on -w $sqSide -h $sqSide -d 30 -cuv 4 -n "windowStraight";
+           setAttr "windowStraight.rotateZ" 45;
+           move -r -y $cywh;
+           select -r windowStraight.f[0] windowStraight.f[2] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowStraight.f[0];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 windowStraight.f[0];
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 22 1 -ep 26 0 |windowStraight;  select -cl;
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 9 1 -ep 2 0 |windowStraight;  select -cl;
+           select -r windowStraight.f[0] windowStraight.f[3] windowStraight.f[5:6] windowStraight.f[9:10] windowStraight.f[13] windowStraight.f[15] ;
+           doDelete;
+           select -r windowStraight.f[7] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowStraight1 windowStraight windowInserts1;
+           DeleteHistory;
+           rename "windowStraight1" "windowInserts1";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory;                 
+
+////////////Middle Vertical Rods
+        if ($wvrCheck == on){
+           if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w $gw -h 2.5 -d 3 -cuv 4 -n "windowRods";
+           select -r windowRods.f[3:5] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           //polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+           float $IwindowRodCount = $wvr;
+           float $windowRodCount = $IwindowRodCount - 1;
+           float $windowRodMove = ($gh - 5) / ($windowRodCount + 1);
+                      if ($IwindowRodCount > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r 0 $windowRodMove 0;
+                            for ($i=1; $i<$windowRodCount; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -y 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.5;
+select -r windowRods windowInserts1 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts1;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts1";
+                     }   
+////////////Middle Horizontal Rods
+        if ($whrCheck == on){
+              if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w 3 -h 2.5 -d $gh -cuv 4 -n "windowRods";
+           select -r windowRods.f[0] windowRods.f[2:3] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           //polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+           float $IwindowRodCount2 = $whr;
+           float $windowRodCount2 = $IwindowRodCount2 - 1;
+           float $windowRodMove2 = ($gw - 5) / ($windowRodCount2 + 1);
+                      if ($IwindowRodCount2 > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r $windowRodMove2 0 0;
+                            for ($i=1; $i<$windowRodCount2; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -x 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.75;
+select -r windowRods windowInserts1 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts1;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts1";    
+}
+////////////////////////////// Row Windows Gen
+select -r windowInserts1;
+       float $GlassWindowsFrontPo = $windowFrontPo - 10;
+       move -r -z $GlassWindowsFrontPo;
+       float $cornerDist = $codis;
+       float $windowSpace1 = $buildW - (2 * $cornerDist);
+       float $windowDist1 = $windowSpace1 - ($wc * $ww);
+       float $windowDist2 = $windowDist1 / ($wc - 1);
+       float $windowMove = $ww + $windowDist2;
+       group -em -n "windows_inserts";
+       parent windowInserts1 windows_inserts;
+       duplicate -rr -renameChildren;
+       move -r $windowMove 0 0;
+       for ($i=1; $i<$wc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r windows_inserts ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts1 windows_inserts;
+       DeleteHistory;
+       move -a -rpr -x 0;
+      // move -a -y 0 windowInserts1.scalePivot windowInserts1.rotatePivot;
+         if ($floorCount > 1 ){
+            move -r -rpr -y 300; 
+       }
+        if (`objExists windows_inserts`){
+            select -r windows_inserts;
+            doDelete;
+        }
+///////////////////////////////////////////////////////side Window
+string $sideWin = `checkBox -q -v sideWindow`;
+float $windowBackPo = -$windowFrontPo;
+float $windowSidePo2 = -$windowSidePo;
+if ($sideWin == on){
+    select -r windowInserts1;
+    duplicate -rr;
+    float $GlassWindowBackPo = $windowBackPo + 10;
+    move -a -rpr -z $GlassWindowBackPo;
+    setAttr "windowInserts2.scaleZ" -1;
+   polyCube -ch on -o on -w $sww -h $swh -d 30 -cuv 4 -n "windowInsert3";
+//move -a -rpr -z 240;
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 0 -pvz 240 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowInsert3.f[0] windowInsert3.f[2];
+hilite;
+doDelete;
+select -cl; select -r windowInsert3;
+polyBridgeEdge -ch 1 -divisions 0 -twist 0 -taper 1 -curveType 0 -smoothingAngle 30 -direction 0 -sourceDirection 0 -targetDirection 0;
+select -r windowInsert3;
+float $sgw = $sww - 2;
+float $sgh = $swh - 2;
+polyCube -ch on -o on -w $sgw -h $sgh -d 5 -cuv 4 -n "windowInsert4";
+select -r windowInsert4;
+sets -e -forceElement glassSG;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts3 windowInsert3 windowInsert4;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+DeleteHistory;
+////////////Curve Parts
+        if ($sideWinCurve == on){
+           float $cysw = $sww /2 ;
+           polyCylinder -ch on -o on -sa 26 -ax 0 0 1 -r $cysw -h 30 -sc 1 -cuv 3 -n "curvedWindow1";
+           float $cyswh = $swh /2 ;
+           move -r -y $cyswh;
+           select -r curvedWindow1.f[26:77] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 curvedWindow1.f[26:77];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 curvedWindow1.f[26:77];
+           select -r curvedWindow1.f[12:24] curvedWindow1.f[26:51] curvedWindow1.f[64:76] curvedWindow1.f[78:103] curvedWindow1.f[116:128] curvedWindow1.f[130:155] curvedWindow1.f[168:180] ;
+           doDelete;
+           select -r curvedWindow1.f[13:25] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowCurved curvedWindow1 windowInserts3;
+           DeleteHistory;
+           rename "windowCurved" "windowInserts3";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory; 
+
+////////////Straight Parts
+       if ($sideWinStraight == on){
+           float $SsqSide = $sww / 1.414213562373095;
+           float $cyswh = $swh /2 ;
+           polyCube -ch on -o on -w $SsqSide -h $SsqSide -d 30 -cuv 4 -n "windowStraight";
+           setAttr "windowStraight.rotateZ" 45;
+           move -r -y $cyswh;
+           select -r windowStraight.f[0] windowStraight.f[2] ;
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 3 -thickness 0 -smoothingAngle 30 windowStraight.f[0];
+           polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx -5.722045898e-06 -pvy 40.00000668 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness -4 -smoothingAngle 30 windowStraight.f[0];
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 22 1 -ep 26 0 |windowStraight;  select -cl;
+           delete `polyMoveVertex -ch 1 |windowStraight.vtx[0]`; polySplit -ch 1 -sma 180 -ep 9 1 -ep 2 0 |windowStraight;  select -cl;
+           select -r windowStraight.f[0] windowStraight.f[3] windowStraight.f[5:6] windowStraight.f[9:10] windowStraight.f[13] windowStraight.f[15] ;
+           doDelete;
+           select -r windowStraight.f[7] ;
+           sets -e -forceElement glassSG;
+           polyUnite -ch 1 -mergeUVSets 1 -objectPivot -name windowStraight1 windowStraight windowInserts3;
+           DeleteHistory;
+           rename "windowStraight1" "windowInserts3";
+                 }
+select -r windowInserts1;
+polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+select -cl;
+DeleteHistory;                 
+
+////////////Middle Vertical Rods
+        if ($swvrCheck == on){
+           if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w $sgw -h 2.5 -d 3 -cuv 4 -n "windowRods";
+           select -r windowRods.f[3:5] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           //polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+           float $IwindowRodCount = $swvr;
+           float $windowRodCount = $IwindowRodCount - 1;
+           float $windowRodMove = ($sgh - 5) / ($windowRodCount + 1);
+                      if ($IwindowRodCount > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r 0 $windowRodMove 0;
+                            for ($i=1; $i<$windowRodCount; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -y 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.5;
+select -r windowRods windowInserts3 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts3;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts3";
+                     }   
+////////////Middle Horizontal Rods
+        if ($swhrCheck == on){
+              if (`objExists windowsRod`){
+                  select -r windowsRod;
+                  doDelete;  }
+           polyCube -ch on -o on -ax 0 0 1 -w 3 -h 2.5 -d $sgh -cuv 4 -n "windowRods";
+           select -r windowRods.f[0] windowRods.f[2:3] ;
+           doDelete;
+           polyProjection -ch 1 -type Planar -ibd on -md x  windowRods.f[0:2];
+           u3dUnfold -ite 1 -p 0 -bi 1 -tf 1 -ms 1024 -rs 0 windowRods;
+           select -cl;select -r windowRods;
+           //polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+           float $IwindowRodCount2 = $swhr;
+           float $windowRodCount2 = $IwindowRodCount2 - 1;
+           float $windowRodMove2 = ($sgw - 5) / ($windowRodCount2 + 1);
+                      if ($IwindowRodCount2 > 1){ 
+                            group -em -n "windowsRods";
+                            parent windowRods windowsRods ;
+                            duplicate -rr -renameChildren;
+                            move -r $windowRodMove2 0 0;
+                            for ($i=1; $i<$windowRodCount2; ++$i) duplicate -rr -renameChildren -st;
+                            select -r windowsRods ;
+                            polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowsRod windowsRods;
+                            DeleteHistory;
+                            move -a -rpr -x 0;
+                            rename "windowsRod" "windowRods";
+}
+move -r  -z 3.75;
+select -r windowRods windowInserts3 ;
+polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowRods1 windowRods windowInserts3;
+polyMultiLayoutUV -lm 1 -sc 1 -rbf 1 -fr 1 -ps 0.2 -l 2 -gu 1 -gv 1 -psc 1 -su 1 -sv 1 -ou 0 -ov 0;
+DeleteHistory;
+rename "windowRods1" "windowInserts3";    
+}
+////////////////////////
+    setAttr "windowInserts3.rotateY" 90;
+    select -r windowInserts3;
+    float $GlassWindowSidePo = $windowSidePo - 10;
+    move -a -rpr -x $GlassWindowSidePo;
+       float $scornerDist = $scodis;
+       float $windowSpace1 = $buildD - (2 * $scornerDist);
+       float $windowDist1 = $windowSpace1 - ($swc * $sww);
+       float $windowDist2 = $windowDist1 / ($swc - 1);
+       float $windowMove = $sww + $windowDist2;
+       group -em -n "window_inserts";
+       parent windowInserts3 window_inserts;
+       duplicate -rr -renameChildren;
+       move -r 0 0 $windowMove;
+       for ($i=1; $i<$swc2; ++$i) duplicate -rr -renameChildren -st; 
+       select -r window_inserts ;
+       polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windowInserts3 window_inserts;
+       DeleteHistory;
+       move -a -rpr -z 0;
+         if ($floorCount > 1 ){
+            move -r -rpr -y 300; 
+       } 
+         if (`objExists window_inserts`){
+            select -r window_inserts;
+            doDelete;
+        }
+       select -r windowInserts3;
+       duplicate -rr;
+       float $GlassWindowSidePo2 = $windowSidePo2 + 10;
+       move -a -rpr -x $GlassWindowSidePo2;
+       setAttr "windowInserts4.scaleX" -1;
+}
+/////////////////////////////////////////////vertical Windows
+     if ($floorCount > 2){
+               group -em -n "windows_Vertical";
+               parent windowInserts1 windows_Vertical;
+               if ($sideWin == on){
+               parent windowInserts2 windows_Vertical;
+               parent windowInserts3 windows_Vertical;
+               parent windowInserts4 windows_Vertical;
+               group -em -n "windows_Vertical2";
+               parent windows_Vertical windows_Vertical2; }
+               duplicate -rr -renameChildren;
+               move -r 0 300 0;
+               for ($i=1; $i<$floorCount2; ++$i) duplicate -rr -renameChildren -st; 
+       }
+         if (`objExists windows_Vertical2`){
+             select -r windows_Vertical2;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows1 windows_Vertical2;
+             DeleteHistory;
+         }
+        if (`objExists windows_Vertical`){
+             select -r windows_Vertical;
+             polyUnite -ch 1 -mergeUVSets 1 -centerPivot -name windows1 windows_Vertical;
+             DeleteHistory;
+         }  
+         if (`objExists windows_Vertical2`){
+             select -r windows_Vertical2;
+             doDelete;
+         }
+       ///////////////////////////////////////////////// Composite Parts
+    string $coPanelCheck = `checkBox -q -v compositePanels`;
+    float $cohs = `floatField -q -v compPanelScale`;
+    if ($floorCount > 1){
+           if ($coPanelCheck == on){
+     
+                  if (`objExists compPanels`){
+                        select -r compPanels;
+                        doDelete;  }
+        float $coh = 300 - $ww;
+        float $cow = $cubeWidth + 70;
+        float $codepth = $cubeDepth +70;
+        float $compoYscale = $cohs;
+        polyCube -ch on -o on -w $cow -h $coh -d $codepth -cuv 4 -n "compositeCube";
+        polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -pvx 0 -pvy 450 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 40 -thickness 0 -smoothingAngle 30 compositeCube.f[1] compositeCube.f[3];
+        hilite;
+        doDelete;
+        if ($bevelCheck == 1) {
+           select -add compositeCube.e[4:5] compositeCube.e[8:9] compositeCube.e[12:13] compositeCube.e[15] compositeCube.e[17] compositeCube.e[20:21] compositeCube.e[23] compositeCube.e[25] ;
+           polyBevel3 -fraction $bvVal -offsetAsFraction 1 -autoFit 1 -depth 1 -mitering 0 -miterAlong 0 -chamfer 1 -segments 5 -worldSpace 1 -smoothingAngle 30 -subdivideNgons 1 -mergeVertices 1 -mergeVertexTolerance 0.0001 -miteringAngle 180 -angleTolerance 180 -ch 1 compositeCube.e[4:5] compositeCube.e[8:9] compositeCube.e[12:13] compositeCube.e[15] compositeCube.e[17] compositeCube.e[20:21] compositeCube.e[23] compositeCube.e[25];
+        }
+        select -r compositeCube;
+        group -em -n "compPanels";
+        parent compositeCube compPanels;
+        setAttr "compositeCube.scaleY" $compoYscale; 
+        makeIdentity -apply true -t 0 -r 0 -s 1 -n 0 -pn 1;
+        polyAutoProjection -lm 0 -pb 0 -ibd 1 -cm 0 -l 2 -sc 1 -o 1 -p 6 -ps 0.2 -ws 0;
+        select -r compositeCube;
+        DeleteHistory;
+        float $floorCount3 = $floorCount2 - 1;       
+  
+                 if ($floorCount > 2){
+                 move -r -y 450;
+                 }
+                 if ($floorCount > 3){
+                 duplicate -rr -renameChildren; 
+                 move -r 0 300 0;
+                 for ($i=1; $i< $floorCount3; ++$i) duplicate -rr -renameChildren -st;
+                 }
+}}
+      ///////////////////////////////////////////////////////
+      
+    
+}  
+}
+
